@@ -751,29 +751,60 @@ def notify_chris(error_msg, context=""):
 
 # ─── End-of-day report ────────────────────────────────────────────────────────
 
-def send_eod_report(sent_count, bounce_count, bounce_list, replacement_queue, skipped_role, dry_run=False, warmth_breakdown=None):
-    """Email chris@getcprdone.com a summary of today's outreach run."""
-    subject = f"[Outreach Report] {today_str()} — {sent_count} sent"
+def send_eod_report(sent_count, bounce_count, bounce_list, replacement_queue, skipped_role, dry_run=False, warmth_breakdown=None, state=None):
+    """Email Manae + Chris a summary of today's outreach activity."""
+    today = today_str()
+    subject = f"[Outreach Report] {today} — {sent_count} sent"
 
+    # Pull reply count from state
+    reply_count = 0
+    if state:
+        reply_count = state.get("daily_reply_count", {}).get(today, 0)
+
+    # Reply rate
+    reply_rate = f"{reply_count/sent_count:.1%}" if sent_count > 0 else "—"
+    bounce_rate = f"{bounce_count/sent_count:.1%}" if sent_count > 0 else "—"
+
+    # Warmth breakdown
     warmth_lines = ""
     if warmth_breakdown:
         warmth_lines = (
-            f"\n  Audience warmth:\n"
+            f"\n  Audience warmth breakdown:\n"
             f"    Hot  (opened <30 days ago):  {warmth_breakdown.get('hot', 0)}\n"
             f"    Warm (30–180 days):           {warmth_breakdown.get('warm', 0)}\n"
             f"    Cold (180+ days):             {warmth_breakdown.get('cold', 0)}\n"
         )
 
+    # Observations — auto-generated based on the numbers
+    observations = []
+    if sent_count == 0:
+        observations.append("No emails sent today — check Mailchimp contact pool or daily cap.")
+    if bounce_count > 0 and sent_count > 0 and bounce_count / sent_count > 0.05:
+        observations.append(f"Bounce rate is elevated ({bounce_rate}) — consider list hygiene on the source segments.")
+    if reply_count > 0:
+        observations.append(f"{reply_count} repl{'y' if reply_count == 1 else 'ies'} received — forwarded to Manae for follow-up.")
+    if warmth_breakdown:
+        cold = warmth_breakdown.get('cold', 0)
+        total_warm = warmth_breakdown.get('hot', 0) + warmth_breakdown.get('warm', 0)
+        if cold > total_warm:
+            observations.append("Majority of today's contacts are cold (180+ days since last open) — engagement may be lower than usual.")
+    if replacement_queue:
+        observations.append(f"{len(replacement_queue)} replacement contact(s) queued for bounced addresses.")
+    if not observations:
+        observations.append("No issues flagged. Normal run.")
+
+    obs_lines = "\n".join(f"  • {o}" for o in observations)
+
     bounce_lines = ""
     if bounce_list:
-        bounce_lines = "\n\nBounced emails (added to do_not_contact):\n"
+        bounce_lines = "\n\nBounced addresses (added to do_not_contact):\n"
         bounce_lines += "\n".join(f"  • {b}" for b in bounce_list)
 
     replacement_lines = ""
     if replacement_queue:
         replacement_lines = "\n\nReplacement contacts queued for next batch:\n"
         for r in replacement_queue:
-            src = r.get("source", "unknown")
+            src  = r.get("source", "unknown")
             name = r.get("replacementName", "")
             title = r.get("replacementTitle", "")
             replacement_lines += (
@@ -789,12 +820,14 @@ def send_eod_report(sent_count, bounce_count, bounce_list, replacement_queue, sk
             skipped_lines += f"\n  ... and {len(skipped_role) - 10} more"
 
     body = (
-        f"Hi Chris,\n\n"
-        f"Here's today's outreach summary for {today_str()}:\n\n"
-        f"  Emails sent:    {sent_count}\n"
-        f"  Hard bounces:   {bounce_count}\n"
-        f"  Replacements queued: {len(replacement_queue)}\n"
+        f"Hi Manae and Chris,\n\n"
+        f"Here's today's outreach summary for {today}:\n\n"
+        f"  Emails sent:      {sent_count}\n"
+        f"  Hard bounces:     {bounce_count} ({bounce_rate})\n"
+        f"  Replies received: {reply_count} ({reply_rate} reply rate)\n"
+        f"  Leads forwarded:  {reply_count}\n"
         f"{warmth_lines}"
+        f"\nObservations & next steps:\n{obs_lines}"
         f"{bounce_lines}"
         f"{replacement_lines}"
         f"{skipped_lines}"
@@ -802,13 +835,13 @@ def send_eod_report(sent_count, bounce_count, bounce_list, replacement_queue, sk
     )
 
     if not dry_run:
-        result = send_email(CHRIS_EMAIL, subject, body)
+        result = send_email(MANAE_EMAIL, subject, body, cc=CHRIS_EMAIL)
         if result.get("success"):
-            log.info("  → End-of-day report sent to Chris")
+            log.info("  → EOD report sent to Manae + Chris")
         else:
             log.error(f"  → EOD report failed: {result.get('error')}")
     else:
-        log.info(f"  [DRY RUN] Would send EOD report to Chris: {sent_count} sent, {bounce_count} bounced")
+        log.info(f"  [DRY RUN] Would send EOD report to Manae + Chris: {sent_count} sent, {bounce_count} bounced, {reply_count} replies")
 
 # ─── Reply check ──────────────────────────────────────────────────────────────
 
@@ -946,17 +979,17 @@ def check_replies(state, dry_run=False):
                     archived_count += 1
 
                 elif kind == "genuine":
-                    log.info(f"  Genuine reply from {sender} — forwarding to Vida")
+                    log.info(f"  Genuine reply from {sender} — forwarding to Manae + Chris")
                     fwd_subject = f"[CPR Lead Reply] {sender}"
                     fwd_body = (
-                        f"Hi Vida,\n\nNew reply to your outreach email.\n\n"
+                        f"Hi Manae,\n\nNew reply to Vida's outreach email — this looks like a live lead.\n\n"
                         f"From: {sender}\n"
                         f"Subject: {subject}\n"
                         f"---\n{body_text[:800]}\n---\n\n"
                         f"—Outreach Agent (automated)"
                     )
                     if not dry_run:
-                        send_email(VIDA_EMAIL, fwd_subject, fwd_body)
+                        send_email(MANAE_EMAIL, fwd_subject, fwd_body, cc=CHRIS_EMAIL)
                         # Mark as read so it doesn't re-appear
                         mail.store(mid, "+FLAGS", "\\Seen")
                     genuine_count += 1
@@ -968,6 +1001,13 @@ def check_replies(state, dry_run=False):
         mail.logout()
 
         state["do_not_contact"] = list(do_not_contact)
+
+        # Accumulate genuine reply count for EOD report
+        today = today_str()
+        daily_replies = state.get("daily_reply_count", {})
+        daily_replies[today] = daily_replies.get(today, 0) + genuine_count
+        state["daily_reply_count"] = daily_replies
+
         save_state(state)
 
         log.info(
@@ -1179,6 +1219,7 @@ def run_daily(dry_run=False):
             skipped_role=today_skipped_roles,
             dry_run=dry_run,
             warmth_breakdown={"hot": len(hot), "warm": len(warm), "cold": len(cold)},
+            state=state,
         )
 
     except Exception as e:
