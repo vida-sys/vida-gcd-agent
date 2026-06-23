@@ -553,5 +553,9 @@
     "tulum@oakhavenmontessori.com.",
     "usaad.sacto@darulmadinahusa.net.",
     "wendell@cargosouthinc.com."
-  ]
+  ],
+  "bounce_replacement_queue": [],
+  "daily_reply_count": {
+    "2026-06-23": 0
+  }
 }
