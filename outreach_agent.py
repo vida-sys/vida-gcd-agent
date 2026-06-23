@@ -679,6 +679,10 @@ def generate_emails_batch(contacts):
         while len(results) < len(contacts):
             results.append(_fallback_result(contacts[len(results)]))
         return results[:len(contacts)]
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        log.warning(f"  Batch generation error: HTTP {e.code} — {body} — using fallbacks for all {len(contacts)} contacts")
+        return [_fallback_result(c) for c in contacts]
     except Exception as e:
         log.warning(f"  Batch generation error: {e} — using fallbacks for all {len(contacts)} contacts")
         return [_fallback_result(c) for c in contacts]
