@@ -527,7 +527,7 @@ def search_replacement_contact(bounced_email, state):
             "anthropic-version": "2023-06-01",
         }
         payload = {
-            "model": "claude-sonnet-4-5",
+            "model": "claude-sonnet-4-6",
             "max_tokens": 300,
             "tools": [{"type": "web_search_20250305", "name": "web_search"}],
             "system": (
@@ -653,7 +653,7 @@ def generate_emails_batch(contacts):
     max_tok = min(4096, 350 * len(contacts) + 200)
 
     payload = {
-        "model": "claude-sonnet-4-5",
+        "model": "claude-sonnet-4-6",
         "max_tokens": max_tok,
         "system": system,
         "messages": [{"role": "user", "content": user_msg}],
