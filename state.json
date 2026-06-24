@@ -510,6 +510,7 @@
   },
   "do_not_contact": [
     "adminpesr@panacheenfants.com.",
+    "andrea.martin@us.huhtamaki.com.",
     "asmith@wvusd.k12.ca.us.",
     "b.colucci@brightfuturesnps.com.",
     "betty@fthpreschool.org.",
@@ -521,6 +522,7 @@
     "d.wilson4@yahoo.com.",
     "diana.lee@teijinautomotive.com.",
     "dmeade@select.org.",
+    "hmcgauly@bitrode.com.",
     "jeff@orbotusa.com",
     "jjansheski@dentek.com.",
     "joanne@masonite.com",
@@ -528,11 +530,13 @@
     "kfigueroa@mdjda.org.",
     "kklase@stlouisedemarillac.org.",
     "lori@fullcompass.com",
+    "lusine@lacasacommunitycenter.org.",
     "maggie@84lumber.com",
     "mail@poseidonschool.com.",
     "maureen.mccormick@abbott.com",
     "mcdcsharks@gmail.com.",
     "michael.grier@dorel.com",
+    "michael.sharp@tjhale.com.",
     "mike@trisoncoatings.com",
     "naturesmontessori@gmail.com.",
     "nrodriguez@ymcawhittier.org.",
@@ -556,6 +560,7 @@
   ],
   "bounce_replacement_queue": [],
   "daily_reply_count": {
-    "2026-06-23": 0
+    "2026-06-23": 0,
+    "2026-06-24": 0
   }
 }
